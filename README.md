@@ -1,5 +1,5 @@
 # EventHubDemo
-This is a super simple Attribute-based Event Aggregator.
+A simple Event Aggregator that uses attributes.
 
 Usage:
 
@@ -36,6 +36,6 @@ To publish
         }
 
 TODO:
-1. Make it to allow generics (DataEventArgs<T>)
+-    Make it to allow generics, i.e. using DataEventArgs&lt;T&gt; instead of ObjectEventArgs
 
-Comments and Feedbacks welcomed
+
