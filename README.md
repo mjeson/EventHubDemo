@@ -1,39 +1,34 @@
 # EventHubDemo
-A simple Event Aggregator that uses attributes.
+A simple attribute-based Event Aggregator.
 
 Usage:
 
 To subsribe and unsubscribe
 
-    public partial class Form1 : Form
+    public class Form1
     {
-        private int _count;
-
         public Form1()
         {
-            InitializeComponent();
+            //To subscribe this instance
             EventHub.Singleton.SubscribeInstance(this);
         }
 
         [EventSubscription("AddCount2Requested")]
         public void AddCount2(object sender, ObjectEventArgs e)
         {
-            _count = _count + ((int) e.Value);
-            label2.InvokeIfRequired(c => { c.Text = _count.ToString(); });
+            int count = ((int) e.Value);
         }
 
         private void destroy()
         {
+            //To unsubscribe
             EventHub.Singleton.UnsubscribeInstance(this);
         }
     }
 
 To publish
 
-        private void addButton_Click(object sender, EventArgs e)
-        {
-            EventHub.Singleton.Publish("AddCount2Requested", this, new ObjectEventArgs(10));
-        }
+        EventHub.Singleton.Publish("AddCount2Requested", this, new ObjectEventArgs(10));
 
 TODO:
 -    Make it to allow generics, i.e. using DataEventArgs&lt;T&gt; instead of ObjectEventArgs
