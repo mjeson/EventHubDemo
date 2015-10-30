@@ -26,7 +26,6 @@ namespace EventHubDemo
 
         private void addButton_Click(object sender, EventArgs e)
         {
-            int a = form1.GetHashCode();
             EventHub.Singleton.Publish("AddCount2Requested", this, new ObjectEventArgs(10));
         }
 
