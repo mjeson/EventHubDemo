@@ -37,7 +37,6 @@ namespace EventHubDemo
                         if (_actionMap[key] == weakRef)
                         {
                             deadIds.Add(key);
-                            break;
                         }
                     }
                 }
