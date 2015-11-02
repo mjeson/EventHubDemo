@@ -21,7 +21,7 @@ namespace EventHubDemo
                 return;
             }
 
-            List<string> deadIds = new List<string>();
+            var deadRefs = new List<WeakReference<Action<object, ObjectEventArgs>>>();
 
             foreach (WeakReference<Action<object, ObjectEventArgs>> weakRef in _eventMap[eventTopic])
             {
@@ -32,13 +32,22 @@ namespace EventHubDemo
                 }
                 else
                 {
-                    foreach (var key in _actionMap.Keys)
-                    {
-                        if (_actionMap[key] == weakRef)
-                        {
-                            deadIds.Add(key);
-                        }
-                    }
+                    deadRefs.Add(weakRef);
+                }
+            }
+
+            if (deadRefs.Count == 0)
+            {
+                return;
+            }
+
+            var deadIds = new List<string>();
+
+            foreach (var key in _actionMap.Keys)
+            {
+                if (deadRefs.Contains(_actionMap[key]))
+                {
+                    deadIds.Add(key);
                 }
             }
 
