@@ -28,7 +28,7 @@ namespace EventHubDemo
 
         private void destroy()
         {
-            EventHub.Singleton.UnsubscribeInstance(this);
+            //EventHub.Singleton.UnsubscribeInstance(this);
         }
     }
 }
