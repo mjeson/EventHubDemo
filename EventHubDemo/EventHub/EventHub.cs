@@ -21,7 +21,7 @@ namespace EventHubDemo
                 return;
             }
 
-            var deadRefs = new List<WeakReference<Action<object, ObjectEventArgs>>>();
+            List<WeakReference<Action<object, ObjectEventArgs>>> deadRefs = null;
 
             foreach (WeakReference<Action<object, ObjectEventArgs>> weakRef in _eventMap[eventTopic])
             {
@@ -32,11 +32,15 @@ namespace EventHubDemo
                 }
                 else
                 {
+                    if (deadRefs == null)
+                    {
+                        deadRefs = new List<WeakReference<Action<object, ObjectEventArgs>>>();
+                    }
                     deadRefs.Add(weakRef);
                 }
             }
 
-            if (deadRefs.Count == 0)
+            if (deadRefs == null)
             {
                 return;
             }
