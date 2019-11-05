@@ -7,12 +7,11 @@ namespace EventHubDemo
 {
     public class EventHub
     {
-        private readonly static EventHub _singleton = new EventHub();
-        public static EventHub Singleton { get { return _singleton; } }
+        public static EventHub Singleton { get; } = new EventHub();
 
         private readonly Dictionary<string, string> _topicMap = new Dictionary<string, string>();
-        private readonly Dictionary<string, WeakReference<Action<object, ObjectEventArgs>>> _actionMap = new Dictionary<string, WeakReference<Action<object, ObjectEventArgs>>>();
-        private readonly Dictionary<string, List<WeakReference<Action<object, ObjectEventArgs>>>> _eventMap = new Dictionary<string, List<WeakReference<Action<object, ObjectEventArgs>>>>();
+        private readonly Dictionary<string, Action<object, ObjectEventArgs>> _actionMap = new Dictionary<string, Action<object, ObjectEventArgs>>();
+        private readonly Dictionary<string, List<Action<object, ObjectEventArgs>>> _eventMap = new Dictionary<string, List<Action<object, ObjectEventArgs>>>();
 
         public void Publish(string eventTopic, object sender, ObjectEventArgs eventData)
         {
@@ -21,60 +20,37 @@ namespace EventHubDemo
                 return;
             }
 
-            List<WeakReference<Action<object, ObjectEventArgs>>> deadRefs = null;
-
-            foreach (WeakReference<Action<object, ObjectEventArgs>> weakRef in _eventMap[eventTopic])
+            foreach (Action<object, ObjectEventArgs> action in _eventMap[eventTopic])
             {
-                Action<object, ObjectEventArgs> action;
-                if (weakRef.TryGetTarget(out action))
-                {
-                    action.Invoke(sender, eventData);
-                }
-                else
-                {
-                    if (deadRefs == null)
-                    {
-                        deadRefs = new List<WeakReference<Action<object, ObjectEventArgs>>>();
-                    }
-                    deadRefs.Add(weakRef);
-                }
-            }
-
-            if (deadRefs == null)
-            {
-                return;
-            }
-
-            var deadIds = new List<string>();
-
-            foreach (var key in _actionMap.Keys)
-            {
-                if (deadRefs.Contains(_actionMap[key]))
-                {
-                    deadIds.Add(key);
-                }
-            }
-
-            foreach (var id in deadIds)
-            {
-                unsubscribe(id);
+                action.Invoke(sender, eventData);
             }
         }
 
         public void SubscribeInstance(object instance)
         {
+            bool disposeMethodFound = false;
             MethodInfo[] methods = instance.GetType().GetMethods();
             foreach (MethodInfo method in methods)
             {
-                var attributes = method.GetCustomAttributes(typeof(EventSubscriptionAttribute), false)
+                if (method.Name == "Dispose")
+                {
+                    disposeMethodFound = true;
+                }
+
+                List<EventSubscriptionAttribute> attributes = method.GetCustomAttributes(typeof(EventSubscriptionAttribute), false)
                     .OfType<EventSubscriptionAttribute>()
                     .ToList();
-                foreach (var attribute in attributes)
+                foreach (EventSubscriptionAttribute attribute in attributes)
                 {
                     var action = (Action<object, ObjectEventArgs>)Delegate.CreateDelegate(typeof(Action<object, ObjectEventArgs>), instance, method);
                     string id = string.Format("{0}@{1}@{2}", attribute.Topic, method.MetadataToken, instance.GetHashCode());
                     subscribe(attribute.Topic, id, action);
                 }
+            }
+
+            if (!disposeMethodFound)
+            {
+                throw new Exception("Instance must implement Dispose() method to call UnsubscribeInstance to prevent memory leaks");
             }
         }
 
@@ -103,13 +79,12 @@ namespace EventHubDemo
 
             if (!_eventMap.ContainsKey(eventTopic))
             {
-                _eventMap[eventTopic] = new List<WeakReference<Action<object, ObjectEventArgs>>>();
+                _eventMap[eventTopic] = new List<Action<object, ObjectEventArgs>>();
             }
 
             _topicMap.Add(id, eventTopic);
-            var weakRef = new WeakReference<Action<object, ObjectEventArgs>>(action);
-            _actionMap.Add(id, weakRef);
-            _eventMap[eventTopic].Add(weakRef);
+            _actionMap.Add(id, action);
+            _eventMap[eventTopic].Add(action);
         }
 
         private void unsubscribe(string id)
@@ -131,5 +106,4 @@ namespace EventHubDemo
             _topicMap.Remove(id);
         }
     }
-
 }
